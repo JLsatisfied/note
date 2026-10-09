@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { ArrowDown } from "@element-plus/icons-vue";
 import dayjs from "dayjs";
 import type {
   AuthorInfo,
+  FilterMemory,
   GitCommit,
   Report,
   ReportSection,
@@ -102,6 +103,68 @@ async function loadBranches() {
   );
 }
 
+/** 当前筛选条件的快照，用来判断有没有真的改动过，避免无意义地写盘 */
+function filterSnapshot(): string {
+  return JSON.stringify([
+    selectedRepos.value,
+    date.value,
+    author.value,
+    branch.value
+  ]);
+}
+
+/** 上次已经落盘的筛选条件快照；空串表示这次进来还没建立基线 */
+let lastSaved = "";
+
+/** 把当前筛选条件记进设置，下次打开这个页面自动恢复 */
+async function persistFilter() {
+  if (filterSnapshot() === lastSaved) return;
+  try {
+    await settingsStore.setFilter(props.type, currentFilter());
+    lastSaved = filterSnapshot();
+  } catch (e) {
+    // 记不住筛选条件不该打断主流程，只留日志
+    console.error("[filter] 保存筛选条件失败", e);
+  }
+}
+
+function currentFilter(): FilterMemory {
+  const isDefaultAuthor = author.value === settingsStore.defaultAuthor;
+  return {
+    repos: toPlain(selectedRepos.value),
+    date: date.value,
+    // 和默认作者一致就不写死，免得以后改了设置被旧记忆压住；
+    // 空串说明用户明确选了「全部」，用 null 记住这个意图
+    author: isDefaultAuthor ? undefined : author.value || null,
+    branch: branch.value
+  };
+}
+
+/** 恢复上次的筛选条件；没记过就退回「默认作者」 */
+async function restoreFilter() {
+  const mem = settingsStore.lastFilter[props.type];
+
+  if (mem) {
+    const known = new Set(settingsStore.repos.map((r) => r.path));
+    selectedRepos.value = (mem.repos ?? []).filter((p) => known.has(p));
+    if (mem.date) date.value = mem.date;
+    if (mem.branch) branch.value = mem.branch;
+    // author 缺省 = 没改过 = 用默认作者；null = 显式选了全部
+    author.value =
+      mem.author === undefined
+        ? settingsStore.defaultAuthor
+        : (mem.author ?? "");
+  } else {
+    author.value = settingsStore.defaultAuthor;
+  }
+
+  // 作者/分支列表依赖已选仓库和日期，得先恢复完再拉
+  await Promise.all([loadAuthors(), loadBranches()]);
+
+  // 记过的分支可能已经被删掉，留着会筛出一片空白
+  if (branch.value && !branches.value.includes(branch.value)) branch.value = "";
+}
+
 async function onReposChange() {
   author.value = "";
   branch.value = "";
@@ -132,6 +195,7 @@ async function generate() {
       ? buildDailySections(commits.value)
       : buildWeeklySections(commits.value);
     if (!commits.value.length) ElMessage.info("该时间段内没有找到提交记录");
+    await persistFilter();
   } catch (e) {
     ElMessage.error(`读取提交失败：${(e as Error).message}`);
   } finally {
@@ -203,8 +267,19 @@ onMounted(async () => {
         new Set((r.commits ?? []).map((c) => c.repo))
       );
       await Promise.all([loadAuthors(), loadBranches()]);
+      // 打开历史报表是「看」不是「生成」，只建立基线，不覆盖记住的筛选条件
+      lastSaved = filterSnapshot();
+      return;
     }
   }
+
+  await restoreFilter();
+  lastSaved = filterSnapshot();
+});
+
+onBeforeUnmount(() => {
+  // 用户可能只是调了筛选条件就切走了，离开时也记一下
+  void persistFilter();
 });
 </script>
 

@@ -1,5 +1,10 @@
 import { acceptHMRUpdate, defineStore } from "pinia";
-import type { RepoConfig, Settings } from "@shared/types";
+import type {
+  FilterMemory,
+  RepoConfig,
+  ReportType,
+  Settings
+} from "@shared/types";
 import { toPlain } from "@/utils/plain";
 
 export const useSettingsStore = defineStore("settings", {
@@ -10,7 +15,9 @@ export const useSettingsStore = defineStore("settings", {
   getters: {
     repos: (s): RepoConfig[] => s.settings?.repos ?? [],
     defaultAuthor: (s): string => s.settings?.defaultAuthor ?? "",
-    includeMerges: (s): boolean => s.settings?.includeMerges ?? false
+    includeMerges: (s): boolean => s.settings?.includeMerges ?? false,
+    lastFilter: (s): Partial<Record<ReportType, FilterMemory>> =>
+      s.settings?.lastFilter ?? {}
   },
   actions: {
     async load() {
@@ -34,6 +41,14 @@ export const useSettingsStore = defineStore("settings", {
     async update(partial: Partial<Settings>) {
       this.settings = await window.api.settings.set(
         toPlain({ ...this.settings!, ...partial })
+      );
+    },
+    /** 记住某个报表类型上次用的筛选条件 */
+    async setFilter(type: ReportType, filter: FilterMemory) {
+      const base = this.settings ?? (await window.api.settings.get());
+      const lastFilter = { ...(base.lastFilter ?? {}), [type]: filter };
+      this.settings = await window.api.settings.set(
+        toPlain({ ...base, lastFilter })
       );
     }
   }

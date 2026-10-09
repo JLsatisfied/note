@@ -10,6 +10,7 @@
     "start": "electron-vite preview",
     "build": "electron-vite build",
     "typecheck": "vue-tsc --noEmit",
+    "icon": "node scripts/make-icon.mjs",
     "build:win": "electron-vite build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux"

@@ -91,8 +91,13 @@ onMounted(async () => {
         <el-form-item label="默认作者">
           <el-input
             v-model="defaultAuthor"
-            placeholder="可选，生成报表时默认筛选的作者（姓名或邮箱）"
+            clearable
+            placeholder="可选，填作者邮箱，如 zhangsan@example.com"
           />
+          <div class="hint">
+            生成日报/周报时，如果没手动选过作者，就默认用它过滤。
+            填邮箱而不是姓名，才能和作者下拉框里的选项对上。
+          </div>
         </el-form-item>
         <el-form-item label="包含合并提交">
           <el-switch v-model="includeMerges" />
@@ -121,5 +126,12 @@ onMounted(async () => {
   font-size: 16px;
   font-weight: 600;
   margin-right: auto;
+}
+
+.hint {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #909399;
 }
 </style>

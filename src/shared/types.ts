@@ -33,10 +33,27 @@ export interface Report {
   updatedAt: string;
 }
 
+/** 上次用过的筛选条件，日报/周报各记一份 */
+export interface FilterMemory {
+  repos: string[];
+  /** 日报为当天，周报为周一 */
+  date: string;
+  /**
+   * 作者邮箱。
+   * - 缺省（undefined）：用户没改过，下次用设置里的「默认作者」
+   * - null：用户显式选了「全部」，不要再套默认作者
+   * - 字符串：用户自己选的作者
+   */
+  author?: string | null;
+  /** 空串表示「全部分支」 */
+  branch: string;
+}
+
 export interface Settings {
   repos: RepoConfig[];
   defaultAuthor: string;
   includeMerges: boolean;
+  lastFilter: Partial<Record<ReportType, FilterMemory>>;
 }
 
 export interface ListCommitsQuery {

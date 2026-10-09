@@ -2,6 +2,8 @@ appId: com.note.app
 productName: Note
 directories:
   output: dist
+  # 构建资源目录（图标放这里）。注意：这个目录不会被打进 app.asar
+  buildResources: build
 electronLanguages:
   - zh-CN
   - en-US
@@ -10,15 +12,22 @@ files:
   - "!**/*.map"
 win:
   target: nsis
+  # 给一张 png 就行，electron-builder 会自己转成 .ico 并校验尺寸
+  icon: build/icon.png
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: Note
   createDesktopShortcut: always
   oneClick: false
   allowToChangeInstallationDirectory: true
+  # installerIcon / uninstallerIcon 故意不配：
+  # 配了的话走 getResource 不会转格式（NSIS 只吃真 .ico），
+  # 不配则自动沿用上面转好的应用图标
 mac:
   target: dmg
   category: public.app-category.productivity
+  icon: build/icon.png
 linux:
   target: AppImage
   category: Utility
+  icon: build/icon.png

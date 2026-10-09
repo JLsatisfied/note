@@ -15,7 +15,9 @@ import type { Report, Settings } from "../../shared/types";
 const DEFAULT_SETTINGS: Settings = {
   repos: [],
   defaultAuthor: "",
-  includeMerges: false
+  includeMerges: false,
+  // 老版本 settings.json 里没有这个字段，靠这里的默认值补齐
+  lastFilter: {}
 };
 
 function dataDir(): string {
