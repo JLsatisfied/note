@@ -1,0 +1,24 @@
+appId: com.note.app
+productName: Note
+directories:
+  output: dist
+electronLanguages:
+  - zh-CN
+  - en-US
+files:
+  - out/**/*
+  - "!**/*.map"
+win:
+  target: nsis
+nsis:
+  artifactName: ${name}-${version}-setup.${ext}
+  shortcutName: Note
+  createDesktopShortcut: always
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+mac:
+  target: dmg
+  category: public.app-category.productivity
+linux:
+  target: AppImage
+  category: Utility
