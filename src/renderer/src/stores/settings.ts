@@ -3,6 +3,7 @@ import type {
   FilterMemory,
   RepoConfig,
   ReportType,
+  SectionTemplate,
   Settings
 } from "@shared/types";
 import { toPlain } from "@/utils/plain";
@@ -17,7 +18,9 @@ export const useSettingsStore = defineStore("settings", {
     defaultAuthor: (s): string => s.settings?.defaultAuthor ?? "",
     includeMerges: (s): boolean => s.settings?.includeMerges ?? false,
     lastFilter: (s): Partial<Record<ReportType, FilterMemory>> =>
-      s.settings?.lastFilter ?? {}
+      s.settings?.lastFilter ?? {},
+    sectionTemplate: (s): Partial<Record<ReportType, SectionTemplate[]>> =>
+      s.settings?.sectionTemplate ?? {}
   },
   actions: {
     async load() {
@@ -49,6 +52,17 @@ export const useSettingsStore = defineStore("settings", {
       const lastFilter = { ...(base.lastFilter ?? {}), [type]: filter };
       this.settings = await window.api.settings.set(
         toPlain({ ...base, lastFilter })
+      );
+    },
+    /** 保存某个报表类型的段落模板；传空数组表示恢复默认 */
+    async setTemplate(type: ReportType, template: SectionTemplate[]) {
+      const base = this.settings ?? (await window.api.settings.get());
+      const sectionTemplate = {
+        ...(base.sectionTemplate ?? {}),
+        [type]: template
+      };
+      this.settings = await window.api.settings.set(
+        toPlain({ ...base, sectionTemplate })
       );
     }
   }

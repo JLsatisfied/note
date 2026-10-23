@@ -16,8 +16,9 @@ const DEFAULT_SETTINGS: Settings = {
   repos: [],
   defaultAuthor: "",
   includeMerges: false,
-  // 老版本 settings.json 里没有这个字段，靠这里的默认值补齐
-  lastFilter: {}
+  // 老版本 settings.json 里没有这两个字段，靠这里的默认值补齐
+  lastFilter: {},
+  sectionTemplate: {}
 };
 
 function dataDir(): string {

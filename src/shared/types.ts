@@ -33,6 +33,23 @@ export interface Report {
   updatedAt: string;
 }
 
+/**
+ * 段落内容从哪来。
+ * - summary：自动统计摘要
+ * - done：自动的提交列表
+ * - risk：自动挑出 fix/revert 的提交
+ * - static：固定文本，生成时原样填进去（如「明日计划」留空待填）
+ */
+export type SectionSource = "summary" | "done" | "risk" | "static";
+
+/** 报表模板里的一个段落定义 */
+export interface SectionTemplate {
+  title: string;
+  source: SectionSource;
+  /** 仅 static 用：生成时填入的默认正文（markdown） */
+  content?: string;
+}
+
 /** 上次用过的筛选条件，日报/周报各记一份 */
 export interface FilterMemory {
   repos: string[];
@@ -54,6 +71,8 @@ export interface Settings {
   defaultAuthor: string;
   includeMerges: boolean;
   lastFilter: Partial<Record<ReportType, FilterMemory>>;
+  /** 自定义报表模板；某个类型没配就用内置默认 */
+  sectionTemplate: Partial<Record<ReportType, SectionTemplate[]>>;
 }
 
 export interface ListCommitsQuery {

@@ -1,5 +1,10 @@
 import dayjs from "dayjs";
-import type { GitCommit, ReportSection } from "@shared/types";
+import type {
+  GitCommit,
+  ReportSection,
+  ReportType,
+  SectionTemplate
+} from "@shared/types";
 
 export { toPlain } from "./plain";
 
@@ -139,55 +144,71 @@ function riskCommits(commits: GitCommit[]): GitCommit[] {
   });
 }
 
-export function buildDailySections(commits: GitCommit[]): ReportSection[] {
-  const risk = riskCommits(commits);
-  return [
-    {
-      id: "summary",
-      title: "统计摘要",
-      content: buildSummary(commits, "daily")
-    },
-    {
-      id: "done",
-      title: "今日完成",
-      content: commits.length ? renderCommitGroups(commits) : "- "
-    },
-    { id: "plan", title: "明日计划", content: "- " },
-    {
-      id: "risk",
-      title: "问题与风险",
-      content: risk.length ? renderCommitGroups(risk) : "- "
-    }
-  ];
-}
+/** 内置默认模板：没自定义时的行为，和之前写死的段落完全一致 */
+export const DEFAULT_TEMPLATES: Record<ReportType, SectionTemplate[]> = {
+  daily: [
+    { title: "统计摘要", source: "summary" },
+    { title: "今日完成", source: "done" },
+    { title: "明日计划", source: "static", content: "- " },
+    { title: "问题与风险", source: "risk" }
+  ],
+  weekly: [
+    { title: "统计摘要", source: "summary" },
+    { title: "本周完成", source: "done" },
+    { title: "下周计划", source: "static", content: "- " },
+    { title: "问题与风险", source: "risk" }
+  ]
+};
 
-export function buildWeeklySections(commits: GitCommit[]): ReportSection[] {
+/** 「提交列表」段落的内容：日报平铺，周报按天分组 */
+function doneContent(commits: GitCommit[], type: ReportType): string {
+  if (type === "daily") {
+    return commits.length ? renderCommitGroups(commits) : "- ";
+  }
   const byDay = groupCommitsByDay(commits);
   const days = Array.from(byDay.keys()).sort();
   const lines: string[] = [];
   for (const day of days) {
-    const dayCommits = byDay.get(day) ?? [];
     lines.push(`### ${dayjs(day).format("MM-DD dddd")}`);
-    lines.push(renderCommitGroups(dayCommits));
+    lines.push(renderCommitGroups(byDay.get(day) ?? []));
     lines.push("");
   }
-  const risk = riskCommits(commits);
-  return [
-    {
-      id: "summary",
-      title: "统计摘要",
-      content: buildSummary(commits, "weekly")
-    },
-    {
-      id: "done",
-      title: "本周完成",
-      content: lines.length ? lines.join("\n").trim() : "- "
-    },
-    { id: "plan", title: "下周计划", content: "- " },
-    {
-      id: "risk",
-      title: "问题与风险",
-      content: risk.length ? renderCommitGroups(risk) : "- "
+  return lines.length ? lines.join("\n").trim() : "- ";
+}
+
+function sectionContent(
+  tpl: SectionTemplate,
+  commits: GitCommit[],
+  type: ReportType
+): string {
+  switch (tpl.source) {
+    case "summary":
+      return buildSummary(commits, type);
+    case "done":
+      return doneContent(commits, type);
+    case "risk": {
+      const risk = riskCommits(commits);
+      return risk.length ? renderCommitGroups(risk) : "- ";
     }
-  ];
+    default:
+      return tpl.content ?? "";
+  }
+}
+
+/**
+ * 按模板生成报表段落。
+ * template 为空（用户没自定义过）时退回内置默认模板。
+ */
+export function buildSections(
+  commits: GitCommit[],
+  type: ReportType,
+  template?: SectionTemplate[]
+): ReportSection[] {
+  const tpl = template?.length ? template : DEFAULT_TEMPLATES[type];
+  return tpl.map((t, i) => ({
+    // id 只用于列表渲染的 key，跟着模板顺序走
+    id: `${t.source}-${i}`,
+    title: t.title,
+    content: sectionContent(t, commits, type)
+  }));
 }

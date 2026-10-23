@@ -13,7 +13,7 @@ import type {
   ReportType
 } from "@shared/types";
 import { useSettingsStore } from "@/stores/settings";
-import { buildDailySections, buildWeeklySections, toPlain } from "@/utils/report";
+import { buildSections, toPlain } from "@/utils/report";
 import CommitTable from "./CommitTable.vue";
 import ReportEditor from "./ReportEditor.vue";
 
@@ -191,9 +191,11 @@ async function generate() {
       branch: branch.value || undefined,
       includeMerges: settingsStore.includeMerges
     });
-    sections.value = isDaily.value
-      ? buildDailySections(commits.value)
-      : buildWeeklySections(commits.value);
+    sections.value = buildSections(
+      commits.value,
+      props.type,
+      settingsStore.sectionTemplate[props.type]
+    );
     if (!commits.value.length) ElMessage.info("该时间段内没有找到提交记录");
     await persistFilter();
   } catch (e) {
